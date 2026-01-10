@@ -2,13 +2,19 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const fs = require("fs");
 
+// --- KONFIGURATION ---
+// true  = Nur Leute anzeigen, die du eingespeichert hast (Filter AN)
+// false = Alle anzeigen, auch unbekannte Nummern in Gruppen (Filter AUS)
+const ONLY_SAVED_CONTACTS = false;
+// ---------------------
+
 const client = new Client({
     puppeteer: {
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         headless: true,
     },
     authStrategy: new LocalAuth(),
-    clientId: "Nils",
+    clientId: "Name", // Session Name
 });
 
 client.on("qr", (qr) => {
@@ -16,11 +22,15 @@ client.on("qr", (qr) => {
 });
 
 client.on("ready", async () => {
-    console.log("Client is ready! Lade Adressbuch...");
+    console.log("Client is ready! Lade Daten...");
+    console.log(
+        `Modus: ${ONLY_SAVED_CONTACTS ? "Nur gespeicherte Kontakte" : "ALLE Kontakte (Full Graph)"}`,
+    );
 
     const myId = client.info.wid._serialized;
+    const myRealName = client.info.pushname || client.info.wid.user;
 
-    // 1. Adressbuch laden (Filter)
+    // 1. Adressbuch laden (um Namen aufzulösen)
     const myContacts = await client.getContacts();
     const savedContactsMap = new Map();
 
@@ -32,17 +42,24 @@ client.on("ready", async () => {
         }
     });
 
-    console.log(`${savedContactsMap.size} Kontakte geladen.`);
+    console.log(`${savedContactsMap.size} gespeicherte Kontakte geladen.`);
 
     const chats = await client.getChats();
     const nodes = [];
     const edges = [];
-
-    // Sets zum Vermeiden von Duplikaten
     const addedNodes = new Set();
-    const addedEdges = new Set(); // Neu: Verhindert doppelte Linien
+    const addedEdges = new Set();
 
-    // Hilfsfunktion: Knoten hinzufügen (nur wenn noch nicht existiert)
+    // --- HELPER FUNKTIONEN ---
+
+    // Findet den Namen: Entweder aus Adressbuch oder die Nummer
+    function getName(id) {
+        if (savedContactsMap.has(id)) {
+            return savedContactsMap.get(id);
+        }
+        return id.split("@")[0]; // Fallback: Nummer
+    }
+
     function addNode(id, label, category) {
         if (!addedNodes.has(id)) {
             nodes.push({ id, label, category });
@@ -50,11 +67,11 @@ client.on("ready", async () => {
         }
     }
 
-    // Hilfsfunktion: Kante hinzufügen
     function addEdge(source, target) {
-        // Wir bauen einen einzigartigen String, um doppelte Kanten zu vermeiden
-        // (z.B. wenn man 2 Chats mit derselben Person hat oder durch Glitches)
-        const edgeId = `${source}-${target}`;
+        // Sortieren, damit A->B und B->A als gleiche Verbindung gelten (für Undirected Graph)
+        const [u, v] = [source, target].sort();
+        const edgeId = `${u}-${v}`;
+
         if (!addedEdges.has(edgeId)) {
             edges.push({ source, target, type: "Undirected" });
             addedEdges.add(edgeId);
@@ -62,23 +79,27 @@ client.on("ready", async () => {
     }
 
     // 2. DICH hinzufügen
-    addNode(myId, "Ich (Nils)", "Me");
+    addNode(myId, `${myRealName} (Ich)`, "Me");
+
+    console.log(`${chats.length} Chats werden verarbeitet...`);
 
     for (const chat of chats) {
-        // A) GRUPPEN LOGIK
+        // --- A) GRUPPEN ---
         if (chat.isGroup) {
             const groupId = chat.id._serialized;
             const groupName = chat.name || "Unbekannte Gruppe";
 
-            // Prüfen, ob Freunde drin sind (optional)
-            const hasFriends = chat.participants.some((p) =>
-                savedContactsMap.has(p.id._serialized),
-            );
+            // Wenn Filter AN ist: Prüfen ob überhaupt Freunde drin sind
+            if (ONLY_SAVED_CONTACTS) {
+                const hasFriends = chat.participants.some((p) =>
+                    savedContactsMap.has(p.id._serialized),
+                );
+                // Optional: Leere Gruppen ausblenden? Wenn ja, hier 'continue' rein.
+                // Aber wir lassen Gruppen drin, solange DU drin bist.
+            }
 
-            // Wir fügen die Gruppe hinzu
+            // Gruppe erstellen & mich verbinden
             addNode(groupId, groupName, "Group");
-
-            // Verbindung: Ich bin in der Gruppe
             addEdge(myId, groupId);
 
             // Teilnehmer durchgehen
@@ -86,34 +107,26 @@ client.on("ready", async () => {
                 const contactId = participant.id._serialized;
                 if (contactId === myId) continue;
 
-                // Nur wenn eingespeichert
-                if (savedContactsMap.has(contactId)) {
-                    // 1. Sicherstellen, dass der Person-Knoten existiert
-                    addNode(
-                        contactId,
-                        savedContactsMap.get(contactId),
-                        "Person",
-                    );
+                const isSaved = savedContactsMap.has(contactId);
 
-                    // 2. Verbindung: Person ist in Gruppe
+                // LOGIK: Hinzufügen, wenn (Filter AUS) ODER (Kontakt gespeichert)
+                if (!ONLY_SAVED_CONTACTS || isSaved) {
+                    addNode(contactId, getName(contactId), "Person");
                     addEdge(contactId, groupId);
                 }
             }
         }
-        // B) EINZELCHAT LOGIK
+        // --- B) EINZELCHATS ---
         else {
             const contactId = chat.id._serialized;
             if (contactId === myId) continue;
             if (contactId === "status@broadcast") continue;
 
-            // Nur wenn eingespeichert
-            if (savedContactsMap.has(contactId)) {
-                // 1. Sicherstellen, dass der Person-Knoten existiert
-                // (Wichtig: Auch wenn er oben bei "Gruppe" schon erstellt wurde, macht addNode() hier nichts kaputt, weil es prüft)
-                addNode(contactId, savedContactsMap.get(contactId), "Person");
+            const isSaved = savedContactsMap.has(contactId);
 
-                // 2. Verbindung: Ich habe einen direkten Chat mit der Person
-                // DAS HIER HAT VORHER GEFEHLT, wenn die Person schon in einer Gruppe war!
+            // LOGIK: Hinzufügen, wenn (Filter AUS) ODER (Kontakt gespeichert)
+            if (!ONLY_SAVED_CONTACTS || isSaved) {
+                addNode(contactId, getName(contactId), "Person");
                 addEdge(myId, contactId);
             }
         }
@@ -133,11 +146,17 @@ client.on("ready", async () => {
         edgesCsvContent += `${edge.source},${edge.target},${edge.type}\n`;
     });
 
-    fs.writeFileSync("whatsapp_final_nodes.csv", nodesCsvContent);
-    fs.writeFileSync("whatsapp_final_edges.csv", edgesCsvContent);
+    // Dateinamen je nach Modus anpassen, damit du nichts überschreibst
+    const prefix = ONLY_SAVED_CONTACTS ? "filtered" : "full";
+
+    fs.writeFileSync(`whatsapp_${prefix}_nodes.csv`, nodesCsvContent);
+    fs.writeFileSync(`whatsapp_${prefix}_edges.csv`, edgesCsvContent);
 
     console.log(
-        `Fertig! ${nodes.length} Knoten und ${edges.length} Verbindungen.`,
+        `Fertig! Dateien erstellt: whatsapp_${prefix}_nodes.csv / _edges.csv`,
+    );
+    console.log(
+        `Statistik: ${nodes.length} Knoten, ${edges.length} Verbindungen.`,
     );
 });
 
