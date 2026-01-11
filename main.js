@@ -2,12 +2,24 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const fs = require("fs");
 
-// --- KONFIGURATION ---
-// true  = Nur Leute anzeigen, die du eingespeichert hast (Filter AN)
-// false = Alle anzeigen, auch unbekannte Nummern in Gruppen (Filter AUS)
-const ONLY_SAVED_CONTACTS = false;
-// ---------------------
+// --- CLI KONFIGURATION ---
+// Wir lesen die Argumente, die beim Starten übergeben wurden.
+// process.argv enthält ["node", "script.js", "arg1", ...]
+const args = process.argv.slice(2);
 
+// Wenn das Argument "--filter" dabei ist, setzen wir den Modus auf TRUE
+const ONLY_SAVED_CONTACTS = args.includes("--filter");
+
+// Optional: Hilfe anzeigen
+if (args.includes("--help")) {
+    console.log(`
+    Verwendung:
+      node index.js           -> Erstellt den VOLLEN Graphen (auch Unbekannte)
+      node index.js --filter  -> Erstellt den GEFILTERTEN Graphen (nur Kontakte)
+    `);
+    process.exit(0);
+}
+// ---------------------
 const client = new Client({
     puppeteer: {
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -158,6 +170,7 @@ client.on("ready", async () => {
     console.log(
         `Statistik: ${nodes.length} Knoten, ${edges.length} Verbindungen.`,
     );
+    process.exit(0);
 });
 
 client.initialize();

@@ -8,6 +8,12 @@ QR-Code in WhatsApp unter "Gerät hinzufügen" scannen und go
 ## Dann in Grephi importieren
 
 
+# Unbekannte Kontakte herausfiltern
+
+```
+node main.js --filter
+```
+
 # Intersections
 
 
