@@ -1,24 +1,25 @@
 {
-    "name": "social-graph",
-    "version": "1.0.0",
-    "description": "",
-    "homepage": "https://github.com/OfficialFreak/social-graph#readme",
-    "bugs": {
-        "url": "https://github.com/OfficialFreak/social-graph/issues"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/OfficialFreak/social-graph.git"
-    },
-    "license": "ISC",
-    "author": "",
-    "type": "commonjs",
-    "main": "main.js",
-    "scripts": {
-        "start": "node ."
-    },
-    "dependencies": {
-        "qrcode-terminal": "^0.12.0",
-        "whatsapp-web.js": "^1.34.4"
-    }
+  "name": "social-graph",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/OfficialFreak/social-graph#readme",
+  "bugs": {
+    "url": "https://github.com/OfficialFreak/social-graph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OfficialFreak/social-graph.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start": "node ."
+  },
+  "dependencies": {
+    "puppeteer": "^24.34.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.4"
+  }
 }
