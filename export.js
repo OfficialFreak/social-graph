@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const qrcode = require("qrcode-terminal");
+const tdqm = require(`tqdm`);
 const { Client, LocalAuth } = require("whatsapp-web.js");
 
 const OUT_DIR = path.resolve("./export");
@@ -41,7 +42,7 @@ client.on("ready", async () => {
     const contacts = {};
 
     console.log(`Downloading information about ${contactsArr.length} contacts`);
-    for (const c of contactsArr) {
+    for (const c of tdqm(contactsArr)) {
         let profilePicUrl = null;
         try {
             profilePicUrl = await c.getProfilePicUrl();
@@ -69,20 +70,20 @@ client.on("ready", async () => {
      */
     console.log("getting groups");
     const chats = await client.getChats();
-    const groupChats = chats.filter((ch) => ch.isGroup);
+    const groupChats = chats.filter(
+        (ch) => ch.isGroup && ch.id && ch.id._serialized,
+    );
 
     const groups = {};
     const userIds = new Set(Object.keys(contacts));
 
-    for (const g of groupChats) {
-        if (!g.id || !g.id._serialized) continue;
-
+    for (const g of tdqm(groupChats)) {
         const gid = g.id._serialized;
         const participantIds = [];
 
-        for (const p of g.participants || []) {
-            if (!p.id || !p.id._serialized) continue;
-
+        for (const p of (g.participants || []).filter(
+            (p) => p.id && p.id._serialized,
+        )) {
             const pid = p.id._serialized;
             participantIds.push(pid);
             userIds.add(pid);
@@ -102,7 +103,7 @@ client.on("ready", async () => {
     /* console.log("getting users");
     const users = {};
 
-    for (const uid of userIds) {
+    for (const uid of tdqm(userIds)) {
         try {
             const contact = await client.getContactById(uid);
 
