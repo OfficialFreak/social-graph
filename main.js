@@ -14,8 +14,8 @@ const ONLY_SAVED_CONTACTS = args.includes("--filter");
 if (args.includes("--help")) {
     console.log(`
     Verwendung:
-      node index.js           -> Erstellt den VOLLEN Graphen (auch Unbekannte)
-      node index.js --filter  -> Erstellt den GEFILTERTEN Graphen (nur Kontakte)
+      node main.js           -> Erstellt den VOLLEN Graphen (auch Unbekannte)
+      node main.js --filter  -> Erstellt den GEFILTERTEN Graphen (nur Kontakte)
     `);
     process.exit(0);
 }
