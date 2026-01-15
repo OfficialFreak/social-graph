@@ -43,7 +43,7 @@ const client = new Client({
         headless: true,
     },
     authStrategy: new LocalAuth(),
-    clientId: "Intersections",
+    clientId: "Name",
 });
 
 client.on("qr", (qr) => qrcode.generate(qr, { small: true }));
