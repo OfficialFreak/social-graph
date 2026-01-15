@@ -9,11 +9,12 @@ const GROUPS_FILE = path.join(OUT_DIR, "groups.json");
 const USERS_FILE = path.join(OUT_DIR, "users.json");
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "Intersections" }),
     puppeteer: {
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
         headless: true,
-        // args: ["--no-sandbox", "--disable-setuid-sandbox"], // enable if needed
     },
+    authStrategy: new LocalAuth(),
+    clientId: "Name", // Session Name
 });
 
 client.on("qr", (qr) => {
