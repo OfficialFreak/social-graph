@@ -5,3 +5,5 @@ whatsapp_*
 gephi_project.gephi
 export
 images
+*.gexf
+*.graphml
