@@ -35,12 +35,13 @@ client.on("ready", async () => {
      * contact_id -> { telephoneNumber, nickname, savedName }
      */
     console.log("getting contacts");
-    const contactsArr = await client.getContacts();
+    const contactsArr = (await client.getContacts()).filter(
+        (c) => c && c.id && c.id._serialized && c.isMyContact,
+    );
     const contacts = {};
 
+    console.log(`Downloading information about ${contactsArr.length} contacts`);
     for (const c of contactsArr) {
-        if (!c || !c.id || !c.id._serialized || !c.isMyContact) continue;
-
         let profilePicUrl = null;
         try {
             profilePicUrl = await c.getProfilePicUrl();
