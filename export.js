@@ -4,7 +4,7 @@ const qrcode = require("qrcode-terminal");
 const tdqm = require(`tqdm`);
 const { Client, LocalAuth } = require("whatsapp-web.js");
 
-const OUT_DIR = path.resolve("./export");
+const OUT_DIR = path.resolve("./export/me");
 const CONTACTS_FILE = path.join(OUT_DIR, "contacts.json");
 const GROUPS_FILE = path.join(OUT_DIR, "groups.json");
 const USERS_FILE = path.join(OUT_DIR, "users.json");
