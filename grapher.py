@@ -50,7 +50,8 @@ def build_contact_graph(contacts: dict, groups: dict) -> nx.Graph:
         members_in_contacts = [m for m in members if m in contact_ids]
         members_in_contacts = list(dict.fromkeys(members_in_contacts))
 
-        n = len(members_in_contacts)
+        # n = len(members_in_contacts)
+        n = len(members)
         if n < 2:
             continue
 
