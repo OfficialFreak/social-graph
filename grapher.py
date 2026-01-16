@@ -71,6 +71,8 @@ def build_contact_graph(contacts: dict, groups: dict) -> nx.Graph:
             groups=",".join(groups_sorted),    # sorted group list
             group_count=len(groups_sorted),    # optional, integer
         )
+    
+    G.remove_nodes_from(list(nx.isolates(G)))
 
     return G
 
