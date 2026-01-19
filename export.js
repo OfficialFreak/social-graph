@@ -42,10 +42,21 @@ client.on("ready", async () => {
     const contacts = {};
 
     console.log(`Downloading information about ${contactsArr.length} contacts`);
+    function withTimeout(promise, ms) {
+        return Promise.race([
+            promise,
+            new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+        ]);
+    }
+
     for (const c of tdqm(contactsArr)) {
         let profilePicUrl = null;
+
         try {
-            profilePicUrl = await c.getProfilePicUrl();
+            profilePicUrl = await withTimeout(
+                c.getProfilePicUrl(),
+                1000, // 1 second
+            );
         } catch {
             profilePicUrl = null;
         }

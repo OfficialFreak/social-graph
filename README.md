@@ -25,3 +25,12 @@ or
 ```
 node group_intersections.js --group "1234567890-1234567890@g.us"
 ```
+
+# Datenexport
+
+```bash
+git clone https://github.com/OfficialFreak/social-graph.git
+cd social-graph
+npm i
+node export.js
+```
